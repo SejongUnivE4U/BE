@@ -66,24 +66,24 @@ public class AuthService {
     }
 
     public Long getUserId(HttpServletRequest request) {
-        String accessToken = request.getHeader("Authorization");
+        String accessToken = accessTokenExtractor(request);
 
         if (validateToken(accessToken)) {
             String email = extractEmail(accessToken);
             return userService.findByEmail(email).getUserId();
         } else {
-            throw new IllegalArgumentException("getUserId : 유효하지 않은 토큰입니다.");
+            throw new IllegalArgumentException("유효하지 않은 토큰입니다.");
         }
     }
 
     public String getUserName(HttpServletRequest request) {
-        String accessToken = request.getHeader("Authorization");
+        String accessToken = accessTokenExtractor(request);
 
         if (validateToken(accessToken)){
             String email = extractEmail(accessToken);
             return userService.findByEmail(email).getName();
         } else{
-            throw new IllegalArgumentException("getUserName : 유효하지 않은 토큰입니다.");
+            throw new IllegalArgumentException("유효하지 않은 토큰입니다.");
         }
     }
 
@@ -110,6 +110,21 @@ public class AuthService {
             // 토큰이 유효하지 않은 경우
             return false;
         }
+    }
+
+    private String accessTokenExtractor(HttpServletRequest httpServletRequest) {
+        Cookie[] cookies = httpServletRequest.getCookies();
+        String accessToken = null;
+
+        if (cookies != null) {
+            for (Cookie cookie : cookies) {
+                if ("accessToken".equals(cookie.getName())) {
+                    accessToken = cookie.getValue();
+                    break;
+                }
+            }
+        }
+        return accessToken;
     }
 
     public void saveToken(Token token) {

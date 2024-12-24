@@ -18,9 +18,10 @@ public class LoginService {
     @Autowired
     AuthService authService;
 
-    public LoginService() {}
+    public LoginService() {
+    }
 
-    public LoginResponse login(LoginRequest loginRequest) {
+    public ServerLoginResponse login(LoginRequest loginRequest) {
         String email = loginRequest.getEmail();
         String password = loginRequest.getPassword();
 
@@ -30,10 +31,38 @@ public class LoginService {
             throw new InvalidPasswordException("비밀번호가 일치하지 않습니다.");
         } else {
             TokenResponse tokens = authService.generateTokens(user.getEmail());
+
+            Cookie cookie = getCookie(tokens);
+            LoginResponse loginResponse = new LoginResponse(tokens.getRefreshToken());
+
             saveToken(tokens, user);
 
-            return new LoginResponse(tokens.getAccessToken(),tokens.getRefreshToken());
+            return new ServerLoginResponse(cookie, loginResponse);
         }
+    }
+
+    public Cookie logout(){
+        return deleteCookie();
+    }
+
+    private Cookie getCookie(TokenResponse tokens) {
+        Cookie cookie = new Cookie("accessToken", tokens.getAccessToken());
+        cookie.setHttpOnly(true);  // 자바스크립트에서 접근 불가
+        cookie.setSecure(true); // HTTP에서 작동
+        cookie.setMaxAge(60 * 60 * 24);  // 1일 동안 유지
+        cookie.setPath("/");
+
+        return cookie;
+    }
+
+    private Cookie deleteCookie() {
+        Cookie cookie = new Cookie("accessToken", null);
+        cookie.setHttpOnly(true);
+        cookie.setSecure(true);  // HTTPS를 사용하는 경우에만 설정
+        cookie.setMaxAge(0);  // 쿠키 만료 시간 설정 (0이면 즉시 삭제)
+        cookie.setPath("/");  // 전체 경로에서 쿠키가 유효하도록 설정
+
+        return cookie;
     }
 
     private void saveToken(TokenResponse tokens, User user) {
